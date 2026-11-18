@@ -1,0 +1,25 @@
+# Slice 1: Postgres only. Redis, RabbitMQ, and the apps come in later slices.
+services:
+  postgres:
+    image: postgres:16
+    container_name: ticket-checkout-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Runs once, only when the data volume is empty.
+      - ./db/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
+      - ./db:/db:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  pgdata:
