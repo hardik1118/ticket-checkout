@@ -2,7 +2,8 @@
   "name": "ticket-checkout",
   "private": true,
   "scripts": {
-    "catalog": "pnpm --filter catalog dev"
+    "catalog": "pnpm --filter catalog dev",
+    "orders": "pnpm --filter orders dev"
   },
   "packageManager": "pnpm@10.13.1"
 }

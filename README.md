@@ -12,7 +12,7 @@ Work stories stay in `projects/` (AICOS, Nebula). This folder is the lab.
 4. The next day you redraw the slice with the file closed.
 5. We do not start the next phase until that redraw works.
 
-Design is confirmed (`docs/00-product.md` through `docs/07-failure-drills.md`). Slice 1 is the schema and seed in `db/`. Slice 2 is the catalog service in `services/catalog`. The hold waits until you can explain these reads.
+Design is confirmed (`docs/00-product.md` through `docs/07-failure-drills.md`). Slice 1 is the schema and seed in `db/`. Slice 2 is the catalog service in `services/catalog`. Slice 3 is the hold in `services/orders`. Pay and RabbitMQ wait until you can explain the hold transaction.
 
 ## Files
 
@@ -66,6 +66,24 @@ curl http://localhost:3001/events/11111111-1111-4111-8111-111111111111/seats
 ```
 
 `services/catalog/.env.example` shows `DATABASE_URL` and `PORT`. Those values are the defaults, so a `.env` file is optional.
+
+## Orders hold (slice 3)
+
+NestJS app on port 3002. It calls catalog over HTTP for labels and prices, then writes the `orders` database. It does not open the catalog database, and it does not publish to RabbitMQ. The `SeatHeld` row sits in `outbox` with `published_at` null.
+
+Start catalog first, then orders:
+
+```
+pnpm catalog
+pnpm orders
+```
+
+```
+Set-Content hold.json -Value '{"eventId":"11111111-1111-4111-8111-111111111111","seatIds":["11111111-1111-4111-8111-0000000000a1"],"idempotencyKey":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1"}'
+curl.exe -sS -X POST http://localhost:3002/holds -H "Content-Type: application/json" --data-binary "@hold.json"
+```
+
+The same key again returns 200 and the same order. A second key for that seat returns 409 `seat_taken`. `GET /events/:eventId/availability` shows the seat as held. `GET /orders/:orderId` reads the order back.
 
 ## Stack (deliberately small)
 
